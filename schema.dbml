@@ -1,0 +1,55 @@
+// WorkLog settlement — PostgreSQL-oriented logical schema
+
+Table users {
+  id int [pk, increment]
+  external_id varchar(64) [unique, not null]
+  display_name varchar(255) [not null]
+  email varchar(255) [unique, not null]
+  hourly_rate_cents int [not null, default: 5000]
+}
+
+Table tasks {
+  id int [pk, increment]
+  external_id varchar(64) [unique, not null]
+  title varchar(512) [not null]
+}
+
+Table worklogs {
+  id int [pk, increment]
+  external_id varchar(64) [unique, not null]
+  task_id int [not null, ref: > tasks.id]
+  user_id int [not null, ref: > users.id]
+}
+
+Table time_entries {
+  id int [pk, increment]
+  worklog_id int [not null, ref: > worklogs.id]
+  occurred_on date [not null]
+  hours decimal(10,2) [not null]
+  memo text
+  status varchar [not null, note: 'approved | excluded']
+  settled_remittance_id int [ref: > remittances.id, note: 'null until successfully settled']
+}
+
+Table remittances {
+  id int [pk, increment]
+  user_id int [not null, ref: > users.id]
+  period_start date [not null]
+  period_end date [not null]
+  total_cents int [not null]
+  status varchar [not null, note: 'pending | completed | failed | cancelled']
+  failure_reason text
+  created_at timestamp [not null]
+}
+
+Table adjustments {
+  id int [pk, increment]
+  user_id int [not null, ref: > users.id]
+  worklog_id int [ref: > worklogs.id]
+  amount_cents int [not null, note: 'may be negative']
+  reason text [not null]
+  relates_to_period_start date
+  relates_to_period_end date
+  created_at timestamp [not null]
+  applied_remittance_id int [ref: > remittances.id, note: 'null until applied on successful payout']
+}

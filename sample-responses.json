@@ -1,0 +1,108 @@
+{
+  "GET /worklogs": [
+    {
+      "id": 1,
+      "external_id": "wl_anya_mobile",
+      "task_id": 1,
+      "task_title": "Mobile app accessibility audit",
+      "user_id": 1,
+      "freelancer_name": "Anya Petrova",
+      "freelancer_email": "anya@example.com",
+      "total_hours": "8.50",
+      "amount_cents": 63750,
+      "remitted_amount_cents": 0,
+      "unremitted_amount_cents": 63750,
+      "remittance_status": "UNREMITTED"
+    },
+    {
+      "id": 2,
+      "external_id": "wl_anya_api",
+      "task_id": 2,
+      "task_title": "Payments API hardening",
+      "user_id": 1,
+      "freelancer_name": "Anya Petrova",
+      "freelancer_email": "anya@example.com",
+      "total_hours": "6.25",
+      "amount_cents": 46875,
+      "remitted_amount_cents": 0,
+      "unremitted_amount_cents": 46875,
+      "remittance_status": "UNREMITTED"
+    }
+  ],
+  "GET /worklogs/2": {
+    "id": 2,
+    "external_id": "wl_anya_api",
+    "task_id": 2,
+    "task_title": "Payments API hardening",
+    "user_id": 1,
+    "freelancer_name": "Anya Petrova",
+    "freelancer_email": "anya@example.com",
+    "total_hours": "8.25",
+    "amount_cents": 61875,
+    "remitted_amount_cents": 46875,
+    "unremitted_amount_cents": 15000,
+    "remittance_status": "UNREMITTED",
+    "time_entries": [
+      {
+        "id": 3,
+        "occurred_on": "2025-11-10",
+        "hours": "6.25",
+        "memo": "Idempotency review",
+        "status": "approved",
+        "amount_cents": 46875,
+        "settled_remittance_id": 4
+      },
+      {
+        "id": 4,
+        "occurred_on": "2025-12-02",
+        "hours": "2.00",
+        "memo": "New segments after November settlement window",
+        "status": "approved",
+        "amount_cents": 15000,
+        "settled_remittance_id": null
+      }
+    ]
+  },
+  "POST /generate-remittances": {
+    "period_start": "2025-11-01",
+    "period_end": "2025-11-30",
+    "remittances": [
+      {
+        "remittance_id": 12,
+        "user_id": 1,
+        "freelancer_name": "Anya Petrova",
+        "total_cents": 99375,
+        "status": "completed",
+        "failure_reason": null,
+        "settled_entry_ids": [1, 2, 3],
+        "applied_adjustment_ids": [1]
+      },
+      {
+        "remittance_id": 13,
+        "user_id": 2,
+        "freelancer_name": "Ben Okoro",
+        "total_cents": 39000,
+        "status": "completed",
+        "failure_reason": null,
+        "settled_entry_ids": [5, 6],
+        "applied_adjustment_ids": []
+      }
+    ]
+  },
+  "POST /generate-remittances (simulated failure)": {
+    "period_start": "2025-11-01",
+    "period_end": "2025-11-30",
+    "remittances": [
+      {
+        "remittance_id": 20,
+        "user_id": 1,
+        "freelancer_name": "Anya Petrova",
+        "total_cents": 99375,
+        "status": "failed",
+        "failure_reason": "Simulated payout provider failure",
+        "settled_entry_ids": [],
+        "applied_adjustment_ids": []
+      }
+    ]
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "users": [
+    {
+      "external_id": "usr_anya",
+      "display_name": "Anya Petrova",
+      "email": "anya@example.com",
+      "hourly_rate_cents": 7500
+    },
+    {
+      "external_id": "usr_ben",
+      "display_name": "Ben Okoro",
+      "email": "ben@example.com",
+      "hourly_rate_cents": 6000
+    },
+    {
+      "external_id": "usr_carmen",
+      "display_name": "Carmen Diaz",
+      "email": "carmen@example.com",
+      "hourly_rate_cents": 8000
+    }
+  ],
+  "tasks": [
+    {
+      "external_id": "tsk_mobile",
+      "title": "Mobile app accessibility audit"
+    },
+    {
+      "external_id": "tsk_api",
+      "title": "Payments API hardening"
+    },
+    {
+      "external_id": "tsk_docs",
+      "title": "Support runbooks"
+    }
+  ],
+  "worklogs": [
+    {
+      "external_id": "wl_anya_mobile",
+      "task_external_id": "tsk_mobile",
+      "user_external_id": "usr_anya"
+    },
+    {
+      "external_id": "wl_anya_api",
+      "task_external_id": "tsk_api",
+      "user_external_id": "usr_anya"
+    },
+    {
+      "external_id": "wl_ben_docs",
+      "task_external_id": "tsk_docs",
+      "user_external_id": "usr_ben"
+    },
+    {
+      "external_id": "wl_carmen_api",
+      "task_external_id": "tsk_api",
+      "user_external_id": "usr_carmen"
+    }
+  ],
+  "time_entries": [
+    {
+      "worklog_external_id": "wl_anya_mobile",
+      "occurred_on": "2025-11-04",
+      "hours": 5.5,
+      "memo": "Screen reader pass + notes",
+      "status": "approved"
+    },
+    {
+      "worklog_external_id": "wl_anya_mobile",
+      "occurred_on": "2025-11-18",
+      "hours": 3.0,
+      "memo": "Follow-up fixes",
+      "status": "approved"
+    },
+    {
+      "worklog_external_id": "wl_anya_api",
+      "occurred_on": "2025-11-10",
+      "hours": 6.25,
+      "memo": "Idempotency review",
+      "status": "approved"
+    },
+    {
+      "worklog_external_id": "wl_anya_api",
+      "occurred_on": "2025-12-02",
+      "hours": 2.0,
+      "memo": "New segments after November settlement window",
+      "status": "approved"
+    },
+    {
+      "worklog_external_id": "wl_ben_docs",
+      "occurred_on": "2025-11-07",
+      "hours": 4.0,
+      "memo": "Draft runbooks",
+      "status": "approved"
+    },
+    {
+      "worklog_external_id": "wl_ben_docs",
+      "occurred_on": "2025-11-21",
+      "hours": 2.5,
+      "memo": "Diagrams",
+      "status": "approved"
+    },
+    {
+      "worklog_external_id": "wl_carmen_api",
+      "occurred_on": "2025-11-12",
+      "hours": 7.0,
+      "memo": "Load test fixes",
+      "status": "approved"
+    },
+    {
+      "worklog_external_id": "wl_carmen_api",
+      "occurred_on": "2025-11-25",
+      "hours": 1.5,
+      "memo": "Minor polish",
+      "status": "approved"
+    }
+  ],
+  "adjustments": [
+    {
+      "user_external_id": "usr_anya",
+      "worklog_external_id": "wl_anya_mobile",
+      "amount_cents": -11250,
+      "reason": "Retroactive quality deduction for October deliverable (applied on next remittance)",
+      "relates_to_period_start": "2025-10-01",
+      "relates_to_period_end": "2025-10-31"
+    }
+  ]
+}
