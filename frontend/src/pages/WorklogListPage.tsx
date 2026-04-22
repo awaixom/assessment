@@ -180,9 +180,11 @@ export default function WorklogListPage() {
       <section className="panel">
         <h2>Exclude from next batch</h2>
         <p className="muted" style={{ marginTop: 0 }}>
-          Checked worklogs and freelancers are omitted from{" "}
+          Checked worklogs and freelancers are omitted from the next{" "}
           <span className="mono">preview-settlement</span> /{" "}
-          <span className="mono">generate-remittances</span> for this browser session.
+          <span className="mono">generate-remittances</span> call.{" "}
+          <strong>No network request runs when you tick these</strong>—selections stay in the
+          browser until you click <strong>Review payment batch</strong> or confirm settlement.
         </p>
         <div className="stack" style={{ marginTop: "0.75rem" }}>
           {uniqueUsers.map(([uid, name]) => (
@@ -232,7 +234,9 @@ export default function WorklogListPage() {
             <table>
               <thead>
                 <tr>
-                  <th />
+                  <th title="Exclude this worklog from the next preview/settlement only (no request until Review or Confirm)">
+                    Skip
+                  </th>
                   <th>Task</th>
                   <th>Freelancer</th>
                   <th>Hours</th>
