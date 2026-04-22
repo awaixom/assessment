@@ -102,3 +102,25 @@ export function generateRemittances(body: GenerateRemittancesBody) {
     body: JSON.stringify(body),
   });
 }
+
+export type SettlementPreviewResponse = {
+  period_start: string;
+  period_end: string;
+  batches: {
+    user_id: number;
+    freelancer_name: string;
+    time_entry_ids: number[];
+    adjustment_ids: number[];
+    entry_total_cents: number;
+    adjustment_total_cents: number;
+    total_cents: number;
+  }[];
+  grand_total_cents: number;
+};
+
+export function previewSettlement(body: GenerateRemittancesBody) {
+  return api<SettlementPreviewResponse>("/preview-settlement", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}

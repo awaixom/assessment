@@ -9,6 +9,7 @@ export default defineConfig({
       "/health": "http://localhost:8000",
       "/worklogs": "http://localhost:8000",
       "/generate-remittances": "http://localhost:8000",
+      "/preview-settlement": "http://localhost:8000",
     },
   },
 });

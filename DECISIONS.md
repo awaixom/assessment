@@ -16,7 +16,27 @@ Freelancers record **multiple time segments** per task (`WorkLog`). Finance pays
 - **`GET /worklogs`** returns per–work log rollups (hours + cents + remitted vs unremitted). When `period_start` / `period_end` are supplied, rollups are **scoped to that window** so the admin view matches “what this settlement batch will consider” for list context.
 - **`GET /worklogs/{id}`** returns the full segment list for drill-down (supporting investigation and approve/exclude toggles).
 - **`PATCH /worklogs/time-entries/{id}`** supports persistent exclusion/approval from the detail screen.
+- **`POST /preview-settlement`** accepts the same body as **`POST /generate-remittances`** and returns the **exact per-user payout plan** (time totals, adjustment totals, grand total) **without writing**. The dashboard uses this so “review before confirm” includes **retroactive adjustments** that do not appear on individual worklog rows.
 - **CORS** is configurable for local Vite (`5173`) and the Dockerized nginx port (`80`).
+- **Period validation**: `period_end` must be on or after `period_start` (`422` on generate/preview, `400` on `GET /worklogs` when both query params are present).
+
+## Assessment coverage (checklist)
+
+| Requirement | Where it lives |
+|---------------|----------------|
+| List worklogs + earned amount per task | `GET /worklogs` (`amount_cents`, `unremitted_amount_cents`, period-scoped when filtered) |
+| Drill down to time entries | `GET /worklogs/{id}` + UI detail route |
+| Date range filter for payment window | `period_start` / `period_end` on `GET /worklogs` + UI date inputs |
+| Review selection before confirming payment | UI modal + `POST /preview-settlement` |
+| Exclude worklogs / freelancers from batch | `exclude_worklog_ids` / `exclude_user_ids` + UI checkboxes |
+| Settlement runs (monthly remittance per user) | `POST /generate-remittances` |
+| Work evolves after payment | New segments stay unsettled until a later successful run |
+| Retroactive adjustments | `adjustments` table + picked up on next successful remittance |
+| Failed / cancelled payouts | `failed` remittance does not attach entries; retry safe |
+| Overlapping corrections vs new period | Unapplied adjustments fold into the current run’s totals |
+| Docker Compose full stack | `docker-compose.yml` + backend/frontend Dockerfiles |
+| DECISIONS.md, schema diagram, sample API JSON | This file, `schema.dbml`, `sample-responses.json` |
+| Screenshots in PR | Capture list (filters + exclusions), detail, review modal (manual) |
 
 ## AGENTS.md guidance
 

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import date
 
 from sqlalchemy import or_
@@ -21,14 +22,24 @@ def simulate_payout_success() -> bool:
     return not settings.payout_simulate_failure
 
 
-def generate_remittances_for_period(
+@dataclass
+class PlannedBatch:
+    user: User
+    entries: list[TimeEntry]
+    adjustments: list[Adjustment]
+    entry_total_cents: int
+    adjustment_total_cents: int
+    total_cents: int
+
+
+def plan_settlement_batches(
     db: Session,
     period_start: date,
     period_end: date,
     exclude_worklog_ids: set[int],
     exclude_user_ids: set[int],
-) -> list[Remittance]:
-    """Create remittance rows per user with eligible entries and unapplied adjustments."""
+) -> list[PlannedBatch]:
+    """Read-only plan: eligible entries in-window plus unapplied adjustments (same rules as payout)."""
     entries_q = (
         db.query(TimeEntry)
         .join(WorkLog)
@@ -70,11 +81,14 @@ def generate_remittances_for_period(
         adjustments_by_user[a.user_id].append(a)
 
     user_ids = set(entries_by_user.keys()) | set(adjustments_by_user.keys())
-    created: list[Remittance] = []
+    plans: list[PlannedBatch] = []
 
     for uid in sorted(user_ids):
         user_entries = entries_by_user.get(uid, [])
         user_adjustments = adjustments_by_user.get(uid, [])
+        user = db.get(User, uid)
+        if not user:
+            continue
         entry_total = sum(
             entry_amount_cents(te, te.worklog.user) for te in user_entries
         )
@@ -82,12 +96,37 @@ def generate_remittances_for_period(
         total_cents = entry_total + adj_total
         if total_cents == 0:
             continue
+        plans.append(
+            PlannedBatch(
+                user=user,
+                entries=user_entries,
+                adjustments=user_adjustments,
+                entry_total_cents=entry_total,
+                adjustment_total_cents=adj_total,
+                total_cents=total_cents,
+            )
+        )
+    return plans
 
+
+def generate_remittances_for_period(
+    db: Session,
+    period_start: date,
+    period_end: date,
+    exclude_worklog_ids: set[int],
+    exclude_user_ids: set[int],
+) -> list[Remittance]:
+    plans = plan_settlement_batches(
+        db, period_start, period_end, exclude_worklog_ids, exclude_user_ids
+    )
+    created: list[Remittance] = []
+
+    for plan in plans:
         rem = Remittance(
-            user_id=uid,
+            user_id=plan.user.id,
             period_start=period_start,
             period_end=period_end,
-            total_cents=total_cents,
+            total_cents=plan.total_cents,
             status=RemittanceStatus.PENDING,
         )
         db.add(rem)
@@ -95,9 +134,9 @@ def generate_remittances_for_period(
 
         if simulate_payout_success():
             rem.status = RemittanceStatus.COMPLETED
-            for te in user_entries:
+            for te in plan.entries:
                 te.settled_remittance_id = rem.id
-            for adj in user_adjustments:
+            for adj in plan.adjustments:
                 adj.applied_remittance_id = rem.id
         else:
             rem.status = RemittanceStatus.FAILED

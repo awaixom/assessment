@@ -80,6 +80,11 @@ def list_worklogs(
             status_code=400, detail="Provide both period_start and period_end"
         )
 
+    if period_start is not None and period_end is not None and period_end < period_start:
+        raise HTTPException(
+            status_code=400, detail="period_end must be on or after period_start"
+        )
+
     rows: list[WorkLogSummaryOut] = []
     for wl in q.order_by(WorkLog.id).all():
         th, amt, rem, unrem, st = _summarize_worklog(wl, period_start, period_end)

@@ -89,6 +89,40 @@
       }
     ]
   },
+  "POST /preview-settlement": {
+    "period_start": "2025-11-01",
+    "period_end": "2025-11-30",
+    "batches": [
+      {
+        "user_id": 1,
+        "freelancer_name": "Anya Petrova",
+        "time_entry_ids": [1, 2, 3],
+        "adjustment_ids": [1],
+        "entry_total_cents": 110625,
+        "adjustment_total_cents": -11250,
+        "total_cents": 99375
+      },
+      {
+        "user_id": 2,
+        "freelancer_name": "Ben Okoro",
+        "time_entry_ids": [5, 6],
+        "adjustment_ids": [],
+        "entry_total_cents": 39000,
+        "adjustment_total_cents": 0,
+        "total_cents": 39000
+      },
+      {
+        "user_id": 3,
+        "freelancer_name": "Carmen Diaz",
+        "time_entry_ids": [7, 8],
+        "adjustment_ids": [],
+        "entry_total_cents": 68000,
+        "adjustment_total_cents": 0,
+        "total_cents": 68000
+      }
+    ],
+    "grand_total_cents": 206375
+  },
   "POST /generate-remittances (simulated failure)": {
     "period_start": "2025-11-01",
     "period_end": "2025-11-30",

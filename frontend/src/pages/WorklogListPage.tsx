@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   RemittanceFilter,
+  SettlementPreviewResponse,
   WorkLogSummary,
   fetchWorklogs,
   generateRemittances,
+  previewSettlement,
 } from "../api";
 import { formatUsd } from "../util";
 
@@ -25,6 +27,8 @@ export default function WorklogListPage() {
   const [excludeUser, setExcludeUser] = useState<Record<number, boolean>>({});
 
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<SettlementPreviewResponse | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [resultMsg, setResultMsg] = useState<string | null>(null);
 
@@ -58,33 +62,47 @@ export default function WorklogListPage() {
     return Array.from(m.entries()).sort((a, b) => a[1].localeCompare(b[1]));
   }, [rows]);
 
-  const eligibleRows = useMemo(
-    () =>
-      rows.filter(
-        (r) =>
-          !excludeWl[r.id] &&
-          !excludeUser[r.user_id] &&
-          r.remittance_status === "UNREMITTED" &&
-          r.unremitted_amount_cents > 0
-      ),
-    [rows, excludeWl, excludeUser]
-  );
+  function exclusionPayload() {
+    const exclude_worklog_ids = Object.entries(excludeWl)
+      .filter(([, v]) => v)
+      .map(([k]) => Number(k));
+    const exclude_user_ids = Object.entries(excludeUser)
+      .filter(([, v]) => v)
+      .map(([k]) => Number(k));
+    return { exclude_worklog_ids, exclude_user_ids };
+  }
 
-  const previewTotal = useMemo(
-    () => eligibleRows.reduce((s, r) => s + r.unremitted_amount_cents, 0),
-    [eligibleRows]
-  );
+  async function openReview() {
+    setPreviewLoading(true);
+    setResultMsg(null);
+    try {
+      const { exclude_worklog_ids, exclude_user_ids } = exclusionPayload();
+      const p = await previewSettlement({
+        period_start: period.start,
+        period_end: period.end,
+        exclude_worklog_ids,
+        exclude_user_ids,
+      });
+      if (p.batches.length === 0) {
+        setResultMsg(
+          "No remittances would be created for this period with the current exclusions (or everything is already settled)."
+        );
+        return;
+      }
+      setPreviewData(p);
+      setReviewOpen(true);
+    } catch (e) {
+      setResultMsg(e instanceof Error ? e.message : "Preview failed");
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
 
   async function runSettlement() {
     setSubmitting(true);
     setResultMsg(null);
     try {
-      const exclude_worklog_ids = Object.entries(excludeWl)
-        .filter(([, v]) => v)
-        .map(([k]) => Number(k));
-      const exclude_user_ids = Object.entries(excludeUser)
-        .filter(([, v]) => v)
-        .map(([k]) => Number(k));
+      const { exclude_worklog_ids, exclude_user_ids } = exclusionPayload();
       const res = await generateRemittances({
         period_start: period.start,
         period_end: period.end,
@@ -97,6 +115,7 @@ export default function WorklogListPage() {
         `Created ${res.remittances.length} remittance(s): ${ok} completed, ${failed} failed.`
       );
       setReviewOpen(false);
+      setPreviewData(null);
       const data = await fetchWorklogs({
         remittance_status: status || undefined,
         user_id: userId ? Number(userId) : undefined,
@@ -162,7 +181,8 @@ export default function WorklogListPage() {
         <h2>Exclude from next batch</h2>
         <p className="muted" style={{ marginTop: 0 }}>
           Checked worklogs and freelancers are omitted from{" "}
-          <span className="mono">POST /generate-remittances</span> for this browser session.
+          <span className="mono">preview-settlement</span> /{" "}
+          <span className="mono">generate-remittances</span> for this browser session.
         </p>
         <div className="stack" style={{ marginTop: "0.75rem" }}>
           {uniqueUsers.map(([uid, name]) => (
@@ -196,10 +216,10 @@ export default function WorklogListPage() {
             <button
               type="button"
               className="btn btn-ghost"
-              onClick={() => setReviewOpen(true)}
-              disabled={eligibleRows.length === 0}
+              onClick={() => void openReview()}
+              disabled={loading || previewLoading}
             >
-              Review payment batch
+              {previewLoading ? "Preparing preview…" : "Review payment batch"}
             </button>
           </div>
         </div>
@@ -279,7 +299,12 @@ export default function WorklogListPage() {
             padding: "1rem",
           }}
           role="presentation"
-          onClick={() => !submitting && setReviewOpen(false)}
+          onClick={() => {
+            if (!submitting) {
+              setReviewOpen(false);
+              setPreviewData(null);
+            }
+          }}
         >
         <div
           className="panel"
@@ -298,17 +323,19 @@ export default function WorklogListPage() {
           <h2>Confirm settlement</h2>
           <p className="muted">
             Period <span className="mono">{period.start}</span> →{" "}
-            <span className="mono">{period.end}</span>. Retroactive adjustments pending for a user
-            are applied on the next successful remittance (see backend seed for an example).
+            <span className="mono">{period.end}</span>. Figures below match the backend plan (time in
+            this window plus any <strong>unapplied adjustments</strong> for each freelancer).
           </p>
           <div className="review-grid" style={{ marginTop: "1rem" }}>
             <div className="stat">
-              <div className="label">Worklogs in batch</div>
-              <div className="value">{eligibleRows.length}</div>
+              <div className="label">Remittances (freelancers)</div>
+              <div className="value">{previewData?.batches.length ?? 0}</div>
             </div>
             <div className="stat">
-              <div className="label">Unremitted total (period, filtered)</div>
-              <div className="value">{formatUsd(previewTotal)}</div>
+              <div className="label">Grand total (payout plan)</div>
+              <div className="value">
+                {formatUsd(previewData?.grand_total_cents ?? 0)}
+              </div>
             </div>
           </div>
           <div className="table-wrap" style={{ marginTop: "1rem" }}>
@@ -316,16 +343,23 @@ export default function WorklogListPage() {
               <thead>
                 <tr>
                   <th>Freelancer</th>
-                  <th>Task</th>
-                  <th>Unremitted</th>
+                  <th>Time (period)</th>
+                  <th>Adjustments</th>
+                  <th>Remittance total</th>
                 </tr>
               </thead>
               <tbody>
-                {eligibleRows.map((r) => (
-                  <tr key={r.id}>
-                    <td>{r.freelancer_name}</td>
-                    <td>{r.task_title}</td>
-                    <td className="mono">{formatUsd(r.unremitted_amount_cents)}</td>
+                {(previewData?.batches ?? []).map((b) => (
+                  <tr key={b.user_id}>
+                    <td>
+                      {b.freelancer_name}{" "}
+                      <span className="muted mono" style={{ fontSize: "0.8em" }}>
+                        #{b.user_id}
+                      </span>
+                    </td>
+                    <td className="mono">{formatUsd(b.entry_total_cents)}</td>
+                    <td className="mono">{formatUsd(b.adjustment_total_cents)}</td>
+                    <td className="mono">{formatUsd(b.total_cents)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -344,7 +378,10 @@ export default function WorklogListPage() {
               type="button"
               className="btn btn-ghost"
               disabled={submitting}
-              onClick={() => setReviewOpen(false)}
+              onClick={() => {
+                setReviewOpen(false);
+                setPreviewData(null);
+              }}
             >
               Cancel
             </button>
